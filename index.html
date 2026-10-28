@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบจองห้องประชุมออนไลน์ | Meeting Room Reservation</title>
+  <!-- Google Fonts: Prompt & Kanit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Prompt', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Prompt', sans-serif;
+    }
+    .timeline-grid {
+      background-size: 20px 20px;
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- Top Navbar -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+          <i data-lucide="calendar-check-2" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold text-slate-900 leading-tight">MeetingSpace Pro</h1>
+          <p class="text-xs text-slate-500">ระบบจองห้องประชุมออนไลน์แบบครบวงจร</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <div id="liveClock" class="hidden sm:flex items-center text-xs font-medium px-3 py-1.5 bg-slate-100 rounded-full text-slate-600 border border-slate-200">
+          <i data-lucide="clock" class="w-3.5 h-3.5 mr-1.5 text-blue-600"></i>
+          <span id="currentTimeDisplay">--:--:--</span>
+        </div>
+        <button onclick="openBookingModal()" class="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition shadow-sm shadow-blue-600/30">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i>
+          <span>จองห้องทันที</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 space-y-6">
+
+    <!-- Hero / Summary Banner -->
+    <div class="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 rounded-2xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
+      <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div class="space-y-2 max-w-xl">
+          <div class="inline-flex items-center space-x-1.5 px-3 py-1 bg-blue-500/20 text-blue-200 border border-blue-400/30 rounded-full text-xs font-medium">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>ระบบอัปเดตสถานะแบบเรียลไทม์</span>
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight">เลือกห้องประชุมที่ตรงใจ พร้อมบริการอาหารและเครื่องดื่ม</h2>
+          <p class="text-slate-300 text-sm leading-relaxed">
+            ตรวจสอบห้องว่างได้ทันที จองง่ายภายใน 1 นาที พร้อมระบบคำนวณเงินมัดจำและการบริการจัดเลี้ยงอาหารว่างในห้องประชุม
+          </p>
+        </div>
+
+        <!-- Quick Stats Cards -->
+        <div class="grid grid-cols-3 gap-3 min-w-[280px]">
+          <div class="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/10 text-center">
+            <span class="block text-2xl font-bold text-white" id="statTotalRooms">4</span>
+            <span class="text-xs text-slate-300">ห้องทั้งหมด</span>
+          </div>
+          <div class="bg-emerald-500/20 backdrop-blur-md rounded-xl p-3 border border-emerald-400/30 text-center">
+            <span class="block text-2xl font-bold text-emerald-300" id="statAvailableRooms">2</span>
+            <span class="text-xs text-emerald-200">ห้องว่างตอนนี้</span>
+          </div>
+          <div class="bg-rose-500/20 backdrop-blur-md rounded-xl p-3 border border-rose-400/30 text-center">
+            <span class="block text-2xl font-bold text-rose-300" id="statOccupiedRooms">2</span>
+            <span class="text-xs text-rose-200">มีคนใช้งาน</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter & Date Selector Bar -->
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+        <span class="text-xs font-semibold uppercase text-slate-400 tracking-wider flex items-center">
+          <i data-lucide="filter" class="w-3.5 h-3.5 mr-1 text-slate-500"></i> ตัวกรอง:
+        </span>
+        <button onclick="setFilter('all')" id="filter-all" class="filter-btn px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 text-white transition shadow-sm">
+          ทั้งหมด
+        </button>
+        <button onclick="setFilter('available')" id="filter-available" class="filter-btn px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition">
+          🟢 ห้องว่างเท่านั้น
+        </button>
+        <button onclick="setFilter('occupied')" id="filter-occupied" class="filter-btn px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition">
+          🔴 มีคนจองแล้ว
+        </button>
+      </div>
+
+      <div class="flex items-center space-x-3 w-full md:w-auto justify-end">
+        <label for="dateFilter" class="text-xs text-slate-500 font-medium whitespace-nowrap flex items-center">
+          <i data-lucide="calendar" class="w-3.5 h-3.5 mr-1 text-slate-400"></i> เลือกดูวันที่:
+        </label>
+        <input type="date" id="dateFilter" class="bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="handleDateChange()">
+      </div>
+    </div>
+
+    <!-- Room Grid List -->
+    <div class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold text-slate-900 flex items-center">
+          <i data-lucide="layout-grid" class="w-4 h-4 mr-2 text-blue-600"></i>
+          รายการห้องประชุมและสถานะปัจจุบัน
+        </h3>
+        <span class="text-xs text-slate-400">คลิกที่ปุ่ม "จองห้องนี้" เพื่อเริ่มการจอง</span>
+      </div>
+
+      <div id="roomListGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+        <!-- Rendered by JavaScript -->
+      </div>
+    </div>
+
+    <!-- Today's Bookings Timeline & Overview -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
+        <div>
+          <h3 class="text-base font-bold text-slate-900 flex items-center">
+            <i data-lucide="list-ordered" class="w-4 h-4 mr-2 text-indigo-600"></i>
+            รายการการจองวันนี้ (ประวัติ & รายละเอียดมัดจำ)
+          </h3>
+          <p class="text-xs text-slate-500">ตรวจสอบสถานะการจอง ค่ามัดจำ และบริการอาหารเครื่องดื่มที่เลือก</p>
+        </div>
+        <div class="text-xs text-slate-500">
+          แสดงข้อมูลอัปเดตล่าสุด
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-600">
+          <thead class="bg-slate-50 text-slate-700 uppercase font-semibold border-y border-slate-200">
+            <tr>
+              <th class="py-3 px-4">รหัส / ห้อง</th>
+              <th class="py-3 px-4">ช่วงเวลาที่จอง</th>
+              <th class="py-3 px-4">ผู้จอง / หัวข้อ</th>
+              <th class="py-3 px-4">อาหาร & เครื่องดื่ม</th>
+              <th class="py-3 px-4 text-right">ยอดรวม</th>
+              <th class="py-3 px-4 text-right">เงินมัดจำ (30%)</th>
+              <th class="py-3 px-4 text-center">สถานะ</th>
+              <th class="py-3 px-4 text-center">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="bookingsTableBody" class="divide-y divide-slate-100">
+            <!-- Rendered by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-6 mt-12 text-center text-xs text-slate-400">
+    <div class="max-w-7xl mx-auto px-4">
+      <p>© 2026 MeetingSpace Pro - ระบบจองห้องประชุมออนไลน์ ครบวงจร ทั้งการจอง สถานะห้อง มัดจำ และอาหารเครื่องดื่ม</p>
+    </div>
+  </footer>
+
+  <!-- ==================== MODAL: BOOKING FORM ==================== -->
+  <div id="bookingModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 bg-gradient-to-r from-blue-700 to-indigo-700 text-white flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="calendar-plus" class="w-5 h-5"></i>
+          <h3 class="text-lg font-bold" id="modalTitle">แบบฟอร์มจองห้องประชุม</h3>
+        </div>
+        <button onclick="closeBookingModal()" class="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body (Scrollable) -->
+      <div class="p-6 overflow-y-auto space-y-6 flex-1 text-xs sm:text-sm">
+        
+        <!-- Step 1: Select Room & Time -->
+        <div class="space-y-4">
+          <h4 class="font-bold text-slate-800 text-sm sm:text-base flex items-center text-blue-700">
+            <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs mr-2 font-bold">1</span>
+            เลือกห้องประชุม และช่วงเวลา
+          </h4>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">เลือกห้องประชุม <span class="text-rose-500">*</span></label>
+              <select id="formRoomSelect" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none" onchange="calculatePrice()">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">วันที่ต้องการใช้งาน <span class="text-rose-500">*</span></label>
+              <input type="date" id="formDate" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none" onchange="calculatePrice()">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">เวลาเริ่ม (Start) <span class="text-rose-500">*</span></label>
+              <select id="formStartTime" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none" onchange="calculatePrice()">
+                <option value="08:00">08:00 น.</option>
+                <option value="09:00" selected>09:00 น.</option>
+                <option value="10:00">10:00 น.</option>
+                <option value="11:00">11:00 น.</option>
+                <option value="12:00">12:00 น.</option>
+                <option value="13:00">13:00 น.</option>
+                <option value="14:00">14:00 น.</option>
+                <option value="15:00">15:00 น.</option>
+                <option value="16:00">16:00 น.</option>
+                <option value="17:00">17:00 น.</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">เวลาสิ้นสุด (End) <span class="text-rose-500">*</span></label>
+              <select id="formEndTime" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none" onchange="calculatePrice()">
+                <option value="09:00">09:00 น.</option>
+                <option value="10:00">10:00 น.</option>
+                <option value="11:00">11:00 น.</option>
+                <option value="12:00" selected>12:00 น.</option>
+                <option value="13:00">13:00 น.</option>
+                <option value="14:00">14:00 น.</option>
+                <option value="15:00">15:00 น.</option>
+                <option value="16:00">16:00 น.</option>
+                <option value="17:00">17:00 น.</option>
+                <option value="18:00">18:00 น.</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Conflict Warning Banner -->
+          <div id="conflictAlert" class="hidden p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center space-x-2">
+            <i data-lucide="alert-triangle" class="w-4 h-4 shrink-0 text-rose-600"></i>
+            <span id="conflictMsg">ช่วงเวลานี้มีผู้จองห้องแล้ว กรุณาเลือกช่วงเวลาอื่น</span>
+          </div>
+        </div>
+
+        <hr class="border-slate-200">
+
+        <!-- Step 2: Booker Information -->
+        <div class="space-y-4">
+          <h4 class="font-bold text-slate-800 text-sm sm:text-base flex items-center text-blue-700">
+            <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs mr-2 font-bold">2</span>
+            ข้อมูลผู้จอง & หัวข้อการประชุม
+          </h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">ชื่อผู้จอง / แผนก <span class="text-rose-500">*</span></label>
+              <input type="text" id="formBookerName" placeholder="เช่น คุณสมชาย (ฝ่ายการตลาด)" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">เบอร์โทรศัพท์ติดต่อ <span class="text-rose-500">*</span></label>
+              <input type="tel" id="formPhone" placeholder="เช่น 081-234-5678" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-semibold text-slate-600 mb-1">หัวข้อการประชุม / จุดประสงค์ <span class="text-rose-500">*</span></label>
+              <input type="text" id="formTitle" placeholder="เช่น ประชุมสรุปผลงานประจำไตรมาส 3" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+          </div>
+        </div>
+
+        <hr class="border-slate-200">
+
+        <!-- Step 3: Food & Beverage Add-ons -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-slate-800 text-sm sm:text-base flex items-center text-blue-700">
+              <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs mr-2 font-bold">3</span>
+              บริการอาหารและเครื่องดื่ม (จัดเลี้ยง)
+            </h4>
+            <span class="text-xs text-slate-400">เลือกจำนวนชุดที่ต้องการ</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="addonsList">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <hr class="border-slate-200">
+
+        <!-- Step 4: Summary & Deposit Calculation -->
+        <div class="bg-gradient-to-br from-slate-50 to-blue-50/50 p-4 rounded-xl border border-blue-100 space-y-2">
+          <h4 class="font-bold text-slate-800 text-sm flex items-center justify-between">
+            <span>สรุปค่าใช้จ่ายและการวางเงินมัดจำ</span>
+            <span class="text-xs text-blue-600 font-normal">มัดจำ 30% ของยอดรวม</span>
+          </h4>
+          <div class="flex justify-between text-xs text-slate-600">
+            <span>ค่าเช่าห้อง (<span id="calcDuration">3</span> ชั่วโมง × <span id="calcHourlyRate">500</span> บ.):</span>
+            <span class="font-medium" id="calcRoomFee">฿1,500</span>
+          </div>
+          <div class="flex justify-between text-xs text-slate-600">
+            <span>ค่าอาหารและเครื่องดื่ม:</span>
+            <span class="font-medium" id="calcAddonsFee">฿0</span>
+          </div>
+          <div class="border-t border-slate-200 pt-2 flex justify-between font-bold text-slate-800 text-sm">
+            <span>ยอดรวมทั้งหมด:</span>
+            <span class="text-blue-700" id="calcTotalAmount">฿1,500</span>
+          </div>
+          <div class="bg-amber-50 border border-amber-200 p-2.5 rounded-lg flex justify-between items-center text-amber-900 font-semibold text-xs sm:text-sm mt-2">
+            <div class="flex items-center space-x-1.5">
+              <i data-lucide="shield-check" class="w-4 h-4 text-amber-600"></i>
+              <span>ยอดเงินมัดจำที่ต้องชำระ (30%):</span>
+            </div>
+            <span class="text-base text-amber-700 font-bold" id="calcDepositAmount">฿450</span>
+          </div>
+          <p class="text-[11px] text-slate-400 italic text-center">
+            * เงินมัดจำเพื่อยืนยันสิทธิ์การใช้งานห้องประชุม ชำระส่วนที่เหลือในวันเข้าใช้งาน
+          </p>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end space-x-3">
+        <button onclick="closeBookingModal()" class="px-4 py-2 border border-slate-300 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition">
+          ยกเลิก
+        </button>
+        <button onclick="proceedToPayment()" id="btnConfirmBooking" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-sm shadow-blue-500/30">
+          <span>ยืนยันและไปชำระมัดจำ</span>
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: PAYMENT / DEPOSIT CONFIRMATION ==================== -->
+  <div id="paymentModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      
+      <div class="px-6 py-4 bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="qr-code" class="w-5 h-5"></i>
+          <h3 class="text-base font-bold">ชำระเงินมัดจำเพื่อยืนยันการจอง</h3>
+        </div>
+        <button onclick="closePaymentModal()" class="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 text-center space-y-4">
+        <div>
+          <span class="text-xs text-slate-500">ยอดเงินมัดจำที่ต้องชำระ (30%)</span>
+          <div class="text-3xl font-extrabold text-slate-900 mt-1" id="payDepositAmount">฿450</div>
+          <span class="text-[11px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">PromptPay พร้อมเพย์</span>
+        </div>
+
+        <!-- Simulated QR Code -->
+        <div class="w-48 h-48 mx-auto bg-white border-2 border-dashed border-slate-300 rounded-2xl p-3 flex flex-col items-center justify-center shadow-inner relative group">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=PROMPTPAY-0812345678-DEPOSIT" alt="QR Code" class="w-full h-full object-contain rounded-lg">
+        </div>
+        <p class="text-xs text-slate-500">
+          สแกน QR Code ผ่านแอปพลิเคชันธนาคารทุกแห่ง หรือกดปุ่มจำลองการโอนสำเร็จด้านล่าง
+        </p>
+
+        <!-- Slip Upload or Simulated Success -->
+        <div class="space-y-2 pt-2">
+          <button onclick="confirmPaymentSuccess()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1.5 shadow-md shadow-emerald-600/30">
+            <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+            <span>จำลองการชำระเงินมัดจำสำเร็จ</span>
+          </button>
+          <button onclick="closePaymentModal()" class="w-full py-2 text-slate-500 hover:text-slate-700 text-xs">
+            ไว้ชำระภายหลัง (สถานะจะเป็น "รอชำระมัดจำ")
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript Logic -->
+  <script>
+    // ==================== INITIAL DATA & STATE ====================
+    const initialRooms = [
+      {
+        id: 'room-1',
+        name: 'ห้องประชุม บอร์ดรูม เอ (Boardroom A)',
+        capacity: 20,
+        hourlyRate: 800,
+        image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=600&q=80',
+        facilities: ['ทีวี 85 นิ้ว', 'ไมค์ห้องประชุม', 'กระดานไวท์บอร์ด', 'ระบบ VDO Conference'],
+        color: 'blue'
+      },
+      {
+        id: 'room-2',
+        name: 'ห้องสัมมนา ครีเอทีฟ สเปซ (Creative Space)',
+        capacity: 12,
+        hourlyRate: 500,
+        image: 'https://images.unsplash.com/photo-1517502884422-41eaead166d4?auto=format&fit=crop&w=600&q=80',
+        facilities: ['โปรเจคเตอร์ 4K', 'ไวท์บอร์ดกระจก', 'ปลั๊กไฟรอบห้อง', 'Wi-Fi 6 ความเร็วสูง'],
+        color: 'indigo'
+      },
+      {
+        id: 'room-3',
+        name: 'ห้องประชุมผู้บริหาร (Executive Room)',
+        capacity: 8,
+        hourlyRate: 600,
+        image: 'https://images.unsplash.com/photo-1497215842964-222b430dc094?auto=format&fit=crop&w=600&q=80',
+        facilities: ['เก้าอี้เพื่อสุขภาพ', 'VDO Conference Polycom', 'เครื่องฟอกอากาศ'],
+        color: 'emerald'
+      },
+      {
+        id: 'room-4',
+        name: 'ห้องมินิ มีตติ้ง (Mini Meeting Room D)',
+        capacity: 4,
+        hourlyRate: 300,
+        image: 'https://images.unsplash.com/photo-1527192491265-7e15c55b1ed2?auto=format&fit=crop&w=600&q=80',
+        facilities: ['จอสมาร์ททีวี 55 นิ้ว', 'กระดานไวท์บอร์ดขนาดเล็ก'],
+        color: 'amber'
+      }
+    ];
+
+    const addonServices = [
+      { id: 'coffee-break', name: 'ชุดเบรคกาแฟสด + ขนมอบพรีเมียม', price: 95, icon: 'coffee' },
+      { id: 'snack-box', name: 'สแน็คบ็อกซ์ (แซนด์วิช + น้ำผลไม้)', price: 75, icon: 'cookie' },
+      { id: 'lunch-box', name: 'อาหารกลางวันกล่องสุขภาพ (เลือกเมนูได้)', price: 150, icon: 'utensils' },
+      { id: 'mineral-water', name: 'น้ำดื่มบรรจุขวดแร่ธรรมชาติ (แพ็ค 12 ขวด)', price: 120, icon: 'cup-soda' }
+    ];
+
+    // Default Seed Bookings
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    const defaultBookings = [
+      {
+        id: 'BK-1001',
+        roomId: 'room-1',
+        date: todayStr,
+        startTime: '09:00',
+        endTime: '12:00',
+        bookerName: 'คุณกิตติศักดิ์ (ฝ่ายบัญชี)',
+        phone: '089-111-2233',
+        title: 'ประชุมสรุปงบประมาณประจำปี',
+        addons: [{ id: 'coffee-break', qty: 15 }, { id: 'mineral-water', qty: 2 }],
+        totalAmount: 4065,
+        depositAmount: 1219.5,
+        depositPaid: true,
+        status: 'confirmed'
+      },
+      {
+        id: 'BK-1002',
+        roomId: 'room-3',
+        date: todayStr,
+        startTime: '13:00',
+        endTime: '16:00',
+        bookerName: 'คุณพัชริดา (ผู้จัดการฝ่ายบุคคล)',
+        phone: '081-999-8877',
+        title: 'สัมภาษณ์ผู้บริหารฝ่ายเทคโนโลยี',
+        addons: [{ id: 'coffee-break', qty: 6 }],
+        totalAmount: 2370,
+        depositAmount: 711,
+        depositPaid: true,
+        status: 'confirmed'
+      }
+    ];
+
+    // Load from LocalStorage or initialize
+    let rooms = initialRooms;
+    let bookings = JSON.parse(localStorage.getItem('mps_bookings')) || defaultBookings;
+    let activeFilter = 'all';
+    let pendingBookingData = null;
+
+    // ==================== INITIALIZATION ====================
+    window.addEventListener('DOMContentLoaded', () => {
+      // Set default date input to today
+      document.getElementById('dateFilter').value = todayStr;
+      document.getElementById('formDate').value = todayStr;
+
+      // Populate room dropdown in booking form
+      const roomSelect = document.getElementById('formRoomSelect');
+      roomSelect.innerHTML = rooms.map(r => `
+        <option value="${r.id}">${r.name} (฿${r.hourlyRate}/ชม. - จุ ${r.capacity} ท่าน)</option>
+      `).join('');
+
+      // Populate Add-ons in booking form
+      const addonsContainer = document.getElementById('addonsList');
+      addonsContainer.innerHTML = addonServices.map(item => `
+        <div class="border border-slate-200 rounded-xl p-3 flex items-center justify-between bg-white hover:border-blue-300 transition">
+          <div>
+            <div class="font-semibold text-slate-800 text-xs sm:text-sm">${item.name}</div>
+            <div class="text-xs text-blue-600 font-bold">฿${item.price} / ชุด</div>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button type="button" onclick="changeAddonQty('${item.id}', -1)" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 font-bold text-sm">-</button>
+            <span id="qty-${item.id}" class="w-6 text-center font-bold text-slate-800 text-xs sm:text-sm">0</span>
+            <button type="button" onclick="changeAddonQty('${item.id}', 1)" class="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">+</button>
+          </div>
+        </div>
+      `).join('');
+
+      // Start live clock
+      setInterval(updateClock, 1000);
+      updateClock();
+
+      // Render
+      renderAll();
+    });
+
+    function saveBookings() {
+      localStorage.setItem('mps_bookings', JSON.stringify(bookings));
+    }
+
+    function updateClock() {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      document.getElementById('currentTimeDisplay').innerText = timeStr + ' น.';
+    }
+
+    // ==================== ROOM STATUS COMPUTATION ====================
+    // Given a room and a target date, calculate current status and until what time
+    function getRoomAvailability(room, targetDate) {
+      const now = new Date();
+      const isToday = targetDate === now.toISOString().split('T')[0];
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+      const currentTimeNum = currentHour * 60 + currentMinute;
+
+      // Filter bookings for this room on this date
+      const roomBookings = bookings.filter(b => b.roomId === room.id && b.date === targetDate && b.status !== 'cancelled');
+
+      // Sort by start time
+      roomBookings.sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+      // Find if currently occupied right now
+      let currentBooking = null;
+      let nextBooking = null;
+
+      for (const b of roomBookings) {
+        const [sH, sM] = b.startTime.split(':').map(Number);
+        const [eH, eM] = b.endTime.split(':').map(Number);
+        const startVal = sH * 60 + sM;
+        const endVal = eH * 60 + eM;
+
+        if (isToday) {
+          if (currentTimeNum >= startVal && currentTimeNum < endVal) {
+            currentBooking = b;
+          } else if (currentTimeNum < startVal && !nextBooking) {
+            nextBooking = b;
+          }
+        }
+      }
+
+      if (isToday) {
+        if (currentBooking) {
+          return {
+            status: 'occupied',
+            badgeText: 'มีคนจองแล้ว / กำลังใช้งาน',
+            detailText: `ไม่ว่าง: จองถึงเวลา ${currentBooking.endTime} น.`,
+            booking: currentBooking,
+            allBookings: roomBookings
+          };
+        } else if (nextBooking) {
+          return {
+            status: 'available',
+            badgeText: 'ห้องว่าง',
+            detailText: `ว่างจนถึง ${nextBooking.startTime} น. (มีคิวถัดไป)`,
+            allBookings: roomBookings
+          };
+        } else {
+          return {
+            status: 'available',
+            badgeText: 'ห้องว่างตลอดวัน',
+            detailText: 'สามารถจองได้ทุกช่วงเวลา',
+            allBookings: roomBookings
+          };
+        }
+      } else {
+        // Looking at future date
+        if (roomBookings.length > 0) {
+          return {
+            status: 'has_bookings',
+            badgeText: `มีคิวจอง ${roomBookings.length} คิว`,
+            detailText: `มีการจองบางช่วงเวลา`,
+            allBookings: roomBookings
+          };
+        } else {
+          return {
+            status: 'available',
+            badgeText: 'ห้องว่างตลอดวัน',
+            detailText: 'ยังไม่มีการจองในวันนี้',
+            allBookings: roomBookings
+          };
+        }
+      }
+    }
+
+    // ==================== RENDER FUNCTIONS ====================
+    function renderAll() {
+      const selectedDate = document.getElementById('dateFilter').value || todayStr;
+      const roomContainer = document.getElementById('roomListGrid');
+      roomContainer.innerHTML = '';
+
+      let totalRoomsCount = rooms.length;
+      let availableCount = 0;
+      let occupiedCount = 0;
+
+      rooms.forEach(room => {
+        const availability = getRoomAvailability(room, selectedDate);
+        const isOccupied = availability.status === 'occupied';
+
+        if (isOccupied) occupiedCount++;
+        else availableCount++;
+
+        // Filter condition
+        if (activeFilter === 'available' && isOccupied) return;
+        if (activeFilter === 'occupied' && !isOccupied) return;
+
+        // Timeline bar calculation (8:00 to 18:00 = 10 hours)
+        const timelineSlots = generateTimelineBar(availability.allBookings);
+
+        const card = document.createElement('div');
+        card.className = "bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition flex flex-col";
+        card.innerHTML = `
+          <!-- Image & Badges -->
+          <div class="relative h-44 overflow-hidden group">
+            <img src="${room.image}" alt="${room.name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-black/20"></div>
+
+            <!-- Status Badge Top Right -->
+            <div class="absolute top-3 right-3">
+              ${isOccupied ? `
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-rose-500 text-white shadow-lg shadow-rose-500/40 border border-white/20">
+                  <span class="w-2 h-2 rounded-full bg-white mr-1.5 animate-ping"></span>
+                  ${availability.badgeText}
+                </span>
+              ` : `
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-500 text-white shadow-lg shadow-emerald-500/40 border border-white/20">
+                  <span class="w-2 h-2 rounded-full bg-emerald-200 mr-1.5"></span>
+                  ${availability.badgeText}
+                </span>
+              `}
+            </div>
+
+            <!-- Price & Capacity Top Left -->
+            <div class="absolute bottom-3 left-3 text-white">
+              <h4 class="text-base font-bold text-white leading-tight drop-shadow-md">${room.name}</h4>
+              <div class="flex items-center space-x-3 text-xs text-slate-200 mt-1">
+                <span class="flex items-center"><i data-lucide="users" class="w-3.5 h-3.5 mr-1 text-blue-300"></i> ${room.capacity} ที่นั่ง</span>
+                <span class="flex items-center font-bold text-amber-300"><i data-lucide="banknote" class="w-3.5 h-3.5 mr-1"></i> ฿${room.hourlyRate}/ชม.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card Body -->
+          <div class="p-5 flex-1 flex flex-col justify-between space-y-4">
+            
+            <!-- Real-time Status Notice -->
+            <div class="p-3 rounded-xl ${isOccupied ? 'bg-rose-50 border border-rose-200 text-rose-800' : 'bg-emerald-50 border border-emerald-200 text-emerald-800'} text-xs flex items-center justify-between">
+              <div class="flex items-center space-x-2">
+                <i data-lucide="${isOccupied ? 'clock' : 'check-circle'}" class="w-4 h-4 ${isOccupied ? 'text-rose-600' : 'text-emerald-600'} shrink-0"></i>
+                <span class="font-semibold">${availability.detailText}</span>
+              </div>
+              <span class="text-[11px] opacity-80">มัดจำ 30%</span>
+            </div>
+
+            <!-- Facilities -->
+            <div>
+              <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">อุปกรณ์และสิ่งอำนวยความสะดวก:</div>
+              <div class="flex flex-wrap gap-1.5">
+                ${room.facilities.map(f => `
+                  <span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md text-[11px] font-medium border border-slate-200">${f}</span>
+                `).join('')}
+              </div>
+            </div>
+
+            <!-- Day Time Slot Bar (08:00 - 18:00) -->
+            <div>
+              <div class="flex items-center justify-between text-[11px] text-slate-500 mb-1">
+                <span>ตารางเวลาวันนี้ (08:00 - 18:00 น.)</span>
+                <span class="text-slate-400">แดง = ติดจอง</span>
+              </div>
+              <div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden flex border border-slate-200">
+                ${timelineSlots}
+              </div>
+            </div>
+
+            <!-- Action Button -->
+            <div class="pt-2">
+              <button onclick="openBookingModal('${room.id}')" class="w-full py-2.5 px-4 bg-slate-900 hover:bg-blue-600 text-white rounded-xl text-xs font-bold transition flex items-center justify-center space-x-2 shadow-sm">
+                <i data-lucide="calendar-plus" class="w-4 h-4"></i>
+                <span>จองห้องนี้ (ระบุเวลา & บริการอาหาร)</span>
+              </button>
+            </div>
+          </div>
+        `;
+        roomContainer.appendChild(card);
+      });
+
+      // Update Top Stats
+      document.getElementById('statTotalRooms').innerText = totalRoomsCount;
+      document.getElementById('statAvailableRooms').innerText = availableCount;
+      document.getElementById('statOccupiedRooms').innerText = occupiedCount;
+
+      // Render Bookings Table
+      renderBookingsTable();
+
+      // Refresh Lucide Icons
+      lucide.createIcons();
+    }
+
+    // Generates a visual 10-hour bar (08:00 to 18:00)
+    function generateTimelineBar(roomBookings) {
+      if (!roomBookings || roomBookings.length === 0) {
+        return '<div class="h-full w-full bg-emerald-400/30" title="ว่างตลอดวัน"></div>';
+      }
+
+      let segments = '';
+      const totalHours = 10; // 8:00 to 18:00
+      for (let h = 8; h < 18; h++) {
+        const slotStart = h * 60;
+        const slotEnd = (h + 1) * 60;
+        
+        let isBooked = false;
+        let bookedBy = '';
+
+        for (const b of roomBookings) {
+          const [sH, sM] = b.startTime.split(':').map(Number);
+          const [eH, eM] = b.endTime.split(':').map(Number);
+          const bStart = sH * 60 + sM;
+          const bEnd = eH * 60 + eM;
+
+          if (slotStart < bEnd && slotEnd > bStart) {
+            isBooked = true;
+            bookedBy = `${b.startTime}-${b.endTime} (${b.bookerName})`;
+            break;
+          }
+        }
+
+        if (isBooked) {
+          segments += `<div class="h-full flex-1 bg-rose-500 border-r border-white/40" title="ติดจอง: ${bookedBy}"></div>`;
+        } else {
+          segments += `<div class="h-full flex-1 bg-emerald-400/40 border-r border-white/40" title="${h}:00 - ${h+1}:00 น. ว่าง"></div>`;
+        }
+      }
+      return segments;
+    }
+
+    // Render bookings table list
+    function renderBookingsTable() {
+      const tbody = document.getElementById('bookingsTableBody');
+      const selectedDate = document.getElementById('dateFilter').value || todayStr;
+      
+      const filtered = bookings.filter(b => b.date === selectedDate);
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" class="text-center py-8 text-slate-400">
+              <i data-lucide="calendar-x" class="w-8 h-8 mx-auto mb-2 opacity-50"></i>
+              ยังไม่มีรายการจองห้องประชุมในวันที่เลือก
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(b => {
+        const room = rooms.find(r => r.id === b.roomId) || { name: 'ห้องประชุม' };
+        
+        // Addons summary
+        const addonText = b.addons && b.addons.length > 0 
+          ? b.addons.map(a => {
+              const item = addonServices.find(s => s.id === a.id);
+              return `${item ? item.name : a.id} (${a.qty} ชุด)`;
+            }).join(', ')
+          : '<span class="text-slate-400">- ไม่ได้รับประทาน -</span>';
+
+        return `
+          <tr class="hover:bg-slate-50/80 transition">
+            <td class="py-3 px-4 font-semibold text-slate-900">
+              <span class="block text-[11px] text-slate-400 font-normal">#${b.id}</span>
+              ${room.name}
+            </td>
+            <td class="py-3 px-4 font-medium text-blue-700 whitespace-nowrap">
+              <div class="flex items-center">
+                <i data-lucide="clock" class="w-3.5 h-3.5 mr-1 text-slate-400"></i>
+                ${b.startTime} - ${b.endTime} น.
+              </div>
+            </td>
+            <td class="py-3 px-4">
+              <div class="font-medium text-slate-800">${b.bookerName}</div>
+              <div class="text-[11px] text-slate-500">${b.title}</div>
+            </td>
+            <td class="py-3 px-4 text-[11px] text-slate-600 max-w-xs truncate" title="${addonText}">
+              ${addonText}
+            </td>
+            <td class="py-3 px-4 text-right font-bold text-slate-800">
+              ฿${b.totalAmount.toLocaleString()}
+            </td>
+            <td class="py-3 px-4 text-right font-bold text-amber-600">
+              ฿${b.depositAmount.toLocaleString()}
+            </td>
+            <td class="py-3 px-4 text-center">
+              ${b.depositPaid ? `
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                  <i data-lucide="check" class="w-3 h-3 mr-1"></i> จ่ายมัดจำแล้ว
+                </span>
+              ` : `
+                <button onclick="openPaymentForBooking('${b.id}')" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 hover:bg-amber-200 transition">
+                  <i data-lucide="credit-card" class="w-3 h-3 mr-1"></i> รอชำระมัดจำ
+                </button>
+              `}
+            </td>
+            <td class="py-3 px-4 text-center">
+              <button onclick="cancelBooking('${b.id}')" class="text-rose-500 hover:text-rose-700 p-1 rounded hover:bg-rose-50" title="ยกเลิกการจอง">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // ==================== FILTER & INTERACTION ====================
+    function setFilter(type) {
+      activeFilter = type;
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('bg-blue-600', 'text-white', 'shadow-sm');
+        btn.classList.add('bg-slate-100', 'text-slate-600');
+      });
+      const activeBtn = document.getElementById(`filter-${type}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('bg-slate-100', 'text-slate-600');
+        activeBtn.classList.add('bg-blue-600', 'text-white', 'shadow-sm');
+      }
+      renderAll();
+    }
+
+    function handleDateChange() {
+      const selected = document.getElementById('dateFilter').value;
+      document.getElementById('formDate').value = selected;
+      renderAll();
+    }
+
+    // ==================== ADD-ONS QUANTITY ====================
+    const selectedAddons = {};
+
+    function changeAddonQty(addonId, delta) {
+      const current = selectedAddons[addonId] || 0;
+      const next = Math.max(0, current + delta);
+      selectedAddons[addonId] = next;
+      document.getElementById(`qty-${addonId}`).innerText = next;
+      calculatePrice();
+    }
+
+    // ==================== PRICE & TIME CONFLICT ====================
+    function calculatePrice() {
+      const roomId = document.getElementById('formRoomSelect').value;
+      const room = rooms.find(r => r.id === roomId);
+      const date = document.getElementById('formDate').value;
+      const startTime = document.getElementById('formStartTime').value;
+      const endTime = document.getElementById('formEndTime').value;
+
+      const [sH, sM] = startTime.split(':').map(Number);
+      const [eH, eM] = endTime.split(':').map(Number);
+      const durationHours = (eH + eM/60) - (sH + sM/60);
+
+      const conflictAlert = document.getElementById('conflictAlert');
+      const conflictMsg = document.getElementById('conflictMsg');
+      const submitBtn = document.getElementById('btnConfirmBooking');
+
+      if (durationHours <= 0) {
+        conflictAlert.classList.remove('hidden');
+        conflictMsg.innerText = 'เวลาสิ้นสุดต้องมากกว่าเวลาเริ่มต้นอย่างน้อย 1 ชั่วโมง';
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        return;
+      }
+
+      // Check conflict with existing bookings
+      const startVal = sH * 60 + sM;
+      const endVal = eH * 60 + eM;
+
+      const conflict = bookings.find(b => {
+        if (b.roomId !== roomId || b.date !== date || b.status === 'cancelled') return false;
+        const [bSH, bSM] = b.startTime.split(':').map(Number);
+        const [bEH, bEM] = b.endTime.split(':').map(Number);
+        const bStart = bSH * 60 + bSM;
+        const bEnd = bEH * 60 + bEM;
+        // Overlap condition: start < bEnd AND end > bStart
+        return (startVal < bEnd && endVal > bStart);
+      });
+
+      if (conflict) {
+        conflictAlert.classList.remove('hidden');
+        conflictMsg.innerText = `ช่วงเวลานี้ชนกับการจองของคุณ "${conflict.bookerName}" (${conflict.startTime} - ${conflict.endTime} น.)`;
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+      } else {
+        conflictAlert.classList.add('hidden');
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
+
+      // Calculate room fee
+      const roomRate = room ? room.hourlyRate : 500;
+      const roomFee = Math.max(0, durationHours * roomRate);
+
+      // Calculate addons fee
+      let addonsFee = 0;
+      for (const [id, qty] of Object.entries(selectedAddons)) {
+        if (qty > 0) {
+          const item = addonServices.find(s => s.id === id);
+          if (item) addonsFee += (item.price * qty);
+        }
+      }
+
+      const totalAmount = roomFee + addonsFee;
+      const depositAmount = totalAmount * 0.3; // 30% Deposit
+
+      document.getElementById('calcDuration').innerText = durationHours;
+      document.getElementById('calcHourlyRate').innerText = roomRate.toLocaleString();
+      document.getElementById('calcRoomFee').innerText = `฿${roomFee.toLocaleString()}`;
+      document.getElementById('calcAddonsFee').innerText = `฿${addonsFee.toLocaleString()}`;
+      document.getElementById('calcTotalAmount').innerText = `฿${totalAmount.toLocaleString()}`;
+      document.getElementById('calcDepositAmount').innerText = `฿${Math.round(depositAmount).toLocaleString()}`;
+    }
+
+    // ==================== MODAL CONTROLS ====================
+    function openBookingModal(defaultRoomId = null) {
+      if (defaultRoomId) {
+        document.getElementById('formRoomSelect').value = defaultRoomId;
+      }
+      
+      const filterDate = document.getElementById('dateFilter').value;
+      if (filterDate) {
+        document.getElementById('formDate').value = filterDate;
+      }
+
+      // Reset quantities
+      for (const item of addonServices) {
+        selectedAddons[item.id] = 0;
+        const el = document.getElementById(`qty-${item.id}`);
+        if (el) el.innerText = '0';
+      }
+
+      calculatePrice();
+      document.getElementById('bookingModal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeBookingModal() {
+      document.getElementById('bookingModal').classList.add('hidden');
+    }
+
+    function proceedToPayment() {
+      const roomId = document.getElementById('formRoomSelect').value;
+      const date = document.getElementById('formDate').value;
+      const startTime = document.getElementById('formStartTime').value;
+      const endTime = document.getElementById('formEndTime').value;
+      const bookerName = document.getElementById('formBookerName').value.trim();
+      const phone = document.getElementById('formPhone').value.trim();
+      const title = document.getElementById('formTitle').value.trim();
+
+      if (!bookerName || !phone || !title) {
+        alert('กรุณากรอกข้อมูลผู้จอง เบอร์โทรศัพท์ และหัวข้อการประชุมให้ครบถ้วน');
+        return;
+      }
+
+      // Prepare addons array
+      const addons = [];
+      for (const [id, qty] of Object.entries(selectedAddons)) {
+        if (qty > 0) addons.push({ id, qty });
+      }
+
+      const room = rooms.find(r => r.id === roomId);
+      const [sH, sM] = startTime.split(':').map(Number);
+      const [eH, eM] = endTime.split(':').map(Number);
+      const duration = (eH + eM/60) - (sH + sM/60);
+      const roomFee = duration * room.hourlyRate;
+      let addonsFee = 0;
+      addons.forEach(a => {
+        const s = addonServices.find(x => x.id === a.id);
+        if (s) addonsFee += s.price * a.qty;
+      });
+      const totalAmount = roomFee + addonsFee;
+      const depositAmount = Math.round(totalAmount * 0.3);
+
+      pendingBookingData = {
+        id: 'BK-' + Math.floor(1000 + Math.random() * 9000),
+        roomId,
+        date,
+        startTime,
+        endTime,
+        bookerName,
+        phone,
+        title,
+        addons,
+        totalAmount,
+        depositAmount,
+        depositPaid: false,
+        status: 'pending_deposit'
+      };
+
+      // Close booking modal & open payment modal
+      closeBookingModal();
+      document.getElementById('payDepositAmount').innerText = `฿${depositAmount.toLocaleString()}`;
+      document.getElementById('paymentModal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closePaymentModal() {
+      if (pendingBookingData) {
+        // Save as pending payment
+        bookings.unshift(pendingBookingData);
+        saveBookings();
+        pendingBookingData = null;
+        renderAll();
+      }
+      document.getElementById('paymentModal').classList.add('hidden');
+    }
+
+    function confirmPaymentSuccess() {
+      if (pendingBookingData) {
+        pendingBookingData.depositPaid = true;
+        pendingBookingData.status = 'confirmed';
+        bookings.unshift(pendingBookingData);
+        saveBookings();
+        pendingBookingData = null;
+      }
+      document.getElementById('paymentModal').classList.add('hidden');
+      renderAll();
+      alert('🎉 ชำระเงินมัดจำและยืนยันการจองห้องประชุมเรียบร้อยแล้ว!');
+    }
+
+    function openPaymentForBooking(bookingId) {
+      const b = bookings.find(x => x.id === bookingId);
+      if (!b) return;
+      pendingBookingData = b;
+      document.getElementById('payDepositAmount').innerText = `฿${b.depositAmount.toLocaleString()}`;
+      document.getElementById('paymentModal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function cancelBooking(bookingId) {
+      if (confirm('คุณต้องการยกเลิกการจองห้องประชุมนี้ใช่หรือไม่?')) {
+        bookings = bookings.filter(b => b.id !== bookingId);
+        saveBookings();
+        renderAll();
+      }
+    }
+  </script>
+</body>
+</html>
